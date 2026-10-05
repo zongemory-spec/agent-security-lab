@@ -9,12 +9,18 @@ class ModelError(Exception):
         super().__init__(reason)
 
 class RealLLMClient:
-    def __init__(self, cfg, timeout=15):
+    def __init__(self, cfg, timeout=15, max_requests=None):
         require_api_key(cfg)
         self.cfg, self.timeout = cfg, timeout
+        self.max_requests=max_requests
+        self.request_count=0
+        self.usage_records=[]
 
     async def chat(self, messages, tools=None):
-        payload = {"model": self.cfg.model, "messages": messages, "temperature": 0}
+        if self.max_requests is not None and self.request_count>=self.max_requests:
+            raise ModelError("validation_budget_exhausted",429)
+        self.request_count+=1
+        payload = {"model": self.cfg.model, "messages": messages, "temperature": 0,"max_tokens":600}
         if tools:
             payload.update(tools=tools, tool_choice="auto")
         if self.cfg.provider == "qwen":
@@ -28,6 +34,7 @@ class RealLLMClient:
             if response.status_code >= 400:
                 raise ModelError("model_upstream_error")
             message = response.json()["choices"][0]["message"]
+            self.usage_records.append({"model":response.json().get("model",self.cfg.model),"usage":response.json().get("usage")})
             if not isinstance(message, dict):
                 raise ValueError()
             return message

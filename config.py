@@ -15,7 +15,7 @@ class ProviderConfig:
 
 
 def get_provider_config(provider: str | None = None) -> ProviderConfig:
-    load_dotenv()  # Only explicit real-model setup may read local credentials.
+    load_dotenv(os.getenv("LAB_PROVIDER_ENV_FILE") or None)
     provider = (provider or os.getenv("LLM_PROVIDER", "qwen")).strip().lower()
 
     if provider == "qwen":
