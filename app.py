@@ -1,66 +1,90 @@
+from __future__ import annotations
+
+import argparse
 import json
 
-from attacks import (
-    scenario_prompt_injection,
-    scenario_indirect_prompt_injection,
-    scenario_tool_overreach,
-    scenario_rag_poisoning,
-    scenario_memory_poisoning,
-    scenario_data_leakage,
-)
+from agent import RealAgent
+from config import get_agent_mode, get_provider_config
+from llm_client import RealLLMClient
+from scenarios import SCENARIOS
+from security import UserContext
 
-SCENARIOS = {
-    "1": ("Prompt Injection", scenario_prompt_injection),
-    "2": ("Indirect Prompt Injection", scenario_indirect_prompt_injection),
-    "3": ("Tool Calling 越权", scenario_tool_overreach),
-    "4": ("RAG Poisoning", scenario_rag_poisoning),
-    "5": ("Memory Poisoning", scenario_memory_poisoning),
-    "6": ("Data Leakage", scenario_data_leakage),
-}
 
-def pretty(obj):
-    print(json.dumps(obj, ensure_ascii=False, indent=2))
+def print_result(result: dict) -> None:
+    print("\n=== FINAL ANSWER ===")
+    print(result["answer"])
+    print("\n=== TOOL TRACE ===")
+    print(json.dumps(result["trace"], ensure_ascii=False, indent=2))
 
-def main():
-    print("=" * 60)
-    print("Agent Security Mini Lab")
-    print("=" * 60)
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Real API Agent Security Lab")
+    parser.add_argument("--provider", choices=["qwen", "deepseek"], default=None)
+    parser.add_argument("--mode", choices=["secure", "vulnerable"], default=None)
+    parser.add_argument("--user", default="alice")
+    parser.add_argument("--role", choices=["user", "admin"], default="user")
+    args = parser.parse_args()
+
+    cfg = get_provider_config(args.provider)
+    mode = args.mode or get_agent_mode()
+    llm = RealLLMClient(cfg)
+    agent = RealAgent(llm, mode=mode)
+    ctx = UserContext(args.user, args.role)
+
+    print("=" * 70)
+    print("Agent Security Real API Lab")
+    print(f"provider={cfg.provider} model={cfg.model} mode={mode} user={ctx.user_id} role={ctx.role}")
+    print("=" * 70)
 
     while True:
-        print("\n选择模式：")
-        print("1. vulnerable")
-        print("2. secure")
+        print("\nChoose:")
+        print("c. custom prompt")
+        for key, item in SCENARIOS.items():
+            print(f"{key}. {item['name']}")
+        print("r. reset memory/RAG")
+        print("p. add poisoned RAG document")
+        print("i. add indirect-injection RAG document")
+        print("m. show memory")
         print("0. exit")
 
-        mode_choice = input("> ").strip()
-
-        if mode_choice == "0":
-            break
-
-        if mode_choice not in {"1", "2"}:
-            print("输入无效")
+        choice = input("> ").strip().lower()
+        if choice == "0":
+            return
+        if choice == "r":
+            agent.memory.reset()
+            agent.rag.reset()
+            print("reset done")
+            continue
+        if choice == "p":
+            agent.rag.add_poison_doc()
+            print("poisoned RAG document added")
+            continue
+        if choice == "i":
+            agent.rag.add_indirect_prompt_doc()
+            print("indirect-prompt document added")
+            continue
+        if choice == "m":
+            print(json.dumps(agent.memory.snapshot(), ensure_ascii=False, indent=2))
+            continue
+        if choice == "c":
+            prompt = input("User> ").strip()
+        elif choice in SCENARIOS:
+            prompt = SCENARIOS[choice]["prompt"]
+            if choice == "6":
+                agent.rag.add_poison_doc()
+            if choice == "7":
+                agent.rag.add_indirect_prompt_doc()
+            print(f"User> {prompt}")
+        else:
+            print("invalid choice")
             continue
 
-        mode = "vulnerable" if mode_choice == "1" else "secure"
+        try:
+            result = agent.run(prompt, ctx)
+            print_result(result)
+        except Exception as exc:
+            print(f"ERROR: {type(exc).__name__}: {exc}")
 
-        while True:
-            print(f"\n当前模式: {mode}")
-            for key, (name, _) in SCENARIOS.items():
-                print(f"{key}. {name}")
-            print("b. 返回")
-
-            choice = input("> ").strip().lower()
-
-            if choice == "b":
-                break
-
-            if choice not in SCENARIOS:
-                print("输入无效")
-                continue
-
-            name, func = SCENARIOS[choice]
-            print(f"\n--- {name} / {mode} ---")
-            pretty(func(mode))
 
 if __name__ == "__main__":
     main()
