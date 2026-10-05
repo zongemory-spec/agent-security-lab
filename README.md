@@ -1,3 +1,5 @@
+> v3.1：本轮启动与验收见 [升级说明](docs/UPGRADE_20261001.md)，新版端口 8002。下文保留项目背景与原实验说明。
+
 # Agent Security Lab 工程版
 
 当前入口与验证说明：[工程版启动与验收](docs/ENGINEERING.md)。

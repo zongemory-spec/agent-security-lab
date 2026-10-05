@@ -7,9 +7,9 @@
 python -m venv .venv-engineering
 .\.venv-engineering\Scripts\python.exe -m pip install -r requirements.lock
 .\.venv-engineering\Scripts\python.exe init_demo.py
-.\.venv-engineering\Scripts\python.exe -m uvicorn api:create_app --factory --host 127.0.0.1 --port 8000 --no-access-log
+.\.venv-engineering\Scripts\python.exe -m uvicorn api:create_app --factory --host 127.0.0.1 --port 8002 --no-access-log
 ```
-打开 http://127.0.0.1:8000 。本地凭证在 data/demo_auth.json，自行打开并复制对应 token 到页面；不要提交或分享该文件。普通用户 alice/bob，发起人 operator（admin），审批人 reviewer（approver）。文件权限依赖操作系统；Windows 请使用个人目录的访问控制。它是本地演示认证，不是生产登录系统。
+打开 http://127.0.0.1:8002 。本地凭证在 data/demo_auth.json，自行打开并复制对应 token 到页面；不要提交或分享该文件。普通用户 alice/bob，发起人 operator（admin），审批人 reviewer（approver）。文件权限依赖操作系统；Windows 请使用个人目录的访问控制。它是本地演示认证，不是生产登录系统。
 
 初始化只在数据库首次创建时填充合成用户；再次启动不会复活已删除的用户。可通过 LAB_DB 和 LAB_AUTH_FILE 指定另一个全新实验目录。旧 data/memory.json 不迁移、不读取，不会覆盖原 .env。初始化脚本是 v1 schema 入口；未知 schema 版本拒绝启动。
 
@@ -48,7 +48,7 @@ GitHub Actions 配置已提供；没有替你推送代码或声称远端 CI 已�
 
 ## 真实模型与离线工程测试分开
 默认 LAB_MODEL=mock 是脚本模拟器，支持页面列出的 /指令，不是自然语言推理模型。
-显式设置 LAB_MODEL=real 后才读取原 .env 并使用 Qwen/DeepSeek HTTP 兼容接口；每次请求有网络超时，无自动重试，Agent 总时限 30 秒，默认最多 3 次工具调用。真实接口、费用与防御成功率本轮未测。
+显式设置 LAB_MODEL=real 后才读取原 .env 并使用 Qwen/DeepSeek HTTP 兼容接口；每次请求有网络超时，无自动重试，Agent 总时限 30 秒，默认最多 3 次工具调用。真实 Qwen 小样本调用已验证，详见 UPGRADE_20261001.md；费用和防御成功率未测。
 离线 CLI：python app.py；真实 CLI：python app.py --provider qwen。
 脆弱对照只能本地显式启动：python app.py --mode vulnerable --allow-vulnerable，使用独立 cli_vulnerable.sqlite3；HTTP 不提供模式切换。
 实验记录建议：模型版本、日期、参数、用例、重复次数、API 异常、实际 usage/价格。攻击成功率和后端拦截率分开，分母为零写不适用，API 错误单列。不要以测试数宣称“100% 安全”。

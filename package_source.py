@@ -10,7 +10,7 @@ FILES = ["agent.py","api.py","app.py","approvals.py","auth.py","config.py","init
          "Dockerfile","compose.yaml","README.md","package_source.py","start.ps1",
          ".github/workflows/tests.yml"]
 if __name__ == "__main__":
-    dest = ROOT/"dist"/"agent-security-engineering.zip"
+    dest = ROOT/"dist"/"agent-security-lab-v3_1.zip"
     dest.parent.mkdir(exist_ok=True)
     paths = [ROOT/f for f in FILES] + list((ROOT/"tests").glob("test_*.py")) + [ROOT/"tests/fixtures/legacy_v2.zip"] + list((ROOT/"docs").glob("*.md"))
     with zipfile.ZipFile(dest,"w",zipfile.ZIP_DEFLATED) as archive:
