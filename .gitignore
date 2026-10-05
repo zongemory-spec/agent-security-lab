@@ -3,3 +3,13 @@
 __pycache__/
 *.pyc
 data/memory.json
+
+# 个人面试笔记，不入库
+INTERVIEW_NOTES.md
+append_q18_24.xml
+
+.venv-engineering/
+local_baseline/
+data/
+dist/
+*.sqlite3*

@@ -1,0 +1,12 @@
+services:
+  lab:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      LAB_MODEL: mock
+    volumes:
+      - lab-data:/app/data
+volumes:
+  lab-data:
+

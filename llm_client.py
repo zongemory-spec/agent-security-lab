@@ -1,29 +1,38 @@
+"""OpenAI-compatible HTTP wire protocol, with bounded timeout and no retries."""
 from __future__ import annotations
+import httpx
+from config import require_api_key
 
-from openai import OpenAI
-
-from config import ProviderConfig, require_api_key
-
+class ModelError(Exception):
+    def __init__(self, reason, status=502):
+        self.reason, self.status = reason, status
+        super().__init__(reason)
 
 class RealLLMClient:
-    def __init__(self, cfg: ProviderConfig):
+    def __init__(self, cfg, timeout=15):
         require_api_key(cfg)
-        self.cfg = cfg
-        self.client = OpenAI(api_key=cfg.api_key, base_url=cfg.base_url)
+        self.cfg, self.timeout = cfg, timeout
 
-    def chat(self, messages: list[dict], tools: list[dict] | None = None):
-        kwargs = {
-            "model": self.cfg.model,
-            "messages": messages,
-            "temperature": 0,
-        }
+    async def chat(self, messages, tools=None):
+        payload = {"model": self.cfg.model, "messages": messages, "temperature": 0}
         if tools:
-            kwargs["tools"] = tools
-            kwargs["tool_choice"] = "auto"
-
-        # Keep Qwen tool-calling deterministic-ish and avoid thinking/tool-call compatibility surprises.
+            payload.update(tools=tools, tool_choice="auto")
         if self.cfg.provider == "qwen":
-            kwargs["extra_body"] = {"enable_thinking": False}
+            payload["enable_thinking"] = False
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(self.cfg.base_url.rstrip("/") + "/chat/completions",
+                    headers={"Authorization": "Bearer " + self.cfg.api_key}, json=payload)
+            if response.status_code == 429:
+                raise ModelError("model_rate_limited", 503)
+            if response.status_code >= 400:
+                raise ModelError("model_upstream_error")
+            message = response.json()["choices"][0]["message"]
+            if not isinstance(message, dict):
+                raise ValueError()
+            return message
+        except httpx.TimeoutException:
+            raise ModelError("model_timeout", 504) from None
+        except (httpx.HTTPError, ValueError, KeyError, IndexError):
+            raise ModelError("model_invalid_response") from None
 
-        response = self.client.chat.completions.create(**kwargs)
-        return response.choices[0].message

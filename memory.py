@@ -1,44 +1,35 @@
 from __future__ import annotations
-
-import json
-from pathlib import Path
-
+import re
 from security import can_write_memory
-
+from storage import Database
 
 class MemoryStore:
-    def __init__(self, path: str | Path = "data/memory.json"):
-        self.path = Path(path)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.data: dict[str, str] = {}
-        self._load()
+    def __init__(self, path="data/lab.sqlite3", *, db=None):
+        self.db = db or Database(path)
 
-    def _load(self) -> None:
-        if not self.path.exists():
-            return
-        try:
-            raw = json.loads(self.path.read_text(encoding="utf-8"))
-            if isinstance(raw, dict):
-                self.data = {str(k): str(v) for k, v in raw.items()}
-        except Exception:
-            self.data = {}
+    @staticmethod
+    def namespace(ctx, session_id, mode):
+        if mode not in {"secure", "vulnerable"}:
+            raise ValueError("Invalid mode")
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", session_id):
+            raise ValueError("Invalid session")
+        return (ctx.tenant_id, ctx.user_id, session_id, mode)
 
-    def _save(self) -> None:
-        self.path.write_text(
-            json.dumps(self.data, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+    def snapshot(self, ctx, session_id, mode="secure"):
+        with self.db.connect() as conn:
+            rows = conn.execute("SELECT key,value FROM memory WHERE tenant=? AND actor=? AND session=? AND mode=?",
+                                self.namespace(ctx, session_id, mode))
+            return {r["key"]: r["value"] for r in rows if mode != "secure" or can_write_memory(r["key"])}
 
-    def reset(self) -> None:
-        self.data = {}
-        self._save()
-
-    def write(self, key: str, value: str, secure: bool) -> str:
-        if secure and not can_write_memory(key):
-            return f"MEMORY_DENIED: key={key} is not allowed"
-        self.data[key] = value
-        self._save()
+    def write(self, key, value, ctx, session_id, mode="secure"):
+        ns = self.namespace(ctx, session_id, mode)
+        if mode == "secure" and not can_write_memory(key):
+            return "MEMORY_DENIED: key is not allowed"
+        with self.db.connect() as conn:
+            conn.execute("INSERT INTO memory VALUES (?,?,?,?,?,?) ON CONFLICT(tenant,actor,session,mode,key) DO UPDATE SET value=excluded.value", (*ns, key, value))
         return f"MEMORY_WRITTEN: {key}={value}"
 
-    def snapshot(self) -> dict[str, str]:
-        return dict(self.data)
+    def reset(self, ctx, session_id, mode="secure"):
+        with self.db.connect() as conn:
+            conn.execute("DELETE FROM memory WHERE tenant=? AND actor=? AND session=? AND mode=?", self.namespace(ctx, session_id, mode))
+

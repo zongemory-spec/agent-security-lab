@@ -4,7 +4,6 @@ import os
 from dataclasses import dataclass
 from dotenv import load_dotenv
 
-load_dotenv()
 
 
 @dataclass(frozen=True)
@@ -16,6 +15,7 @@ class ProviderConfig:
 
 
 def get_provider_config(provider: str | None = None) -> ProviderConfig:
+    load_dotenv()  # Only explicit real-model setup may read local credentials.
     provider = (provider or os.getenv("LLM_PROVIDER", "qwen")).strip().lower()
 
     if provider == "qwen":

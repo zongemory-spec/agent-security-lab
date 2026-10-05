@@ -1,3 +1,13 @@
+# Agent Security Lab 工程版
+
+当前入口与验证说明：[工程版启动与验收](docs/ENGINEERING.md)。
+
+已替换模型自报 confirm、全局 USERS 和共享 JSON 记忆。默认离线、HTTP 固定 secure，支持独立双人审批与原子执行。
+
+原版 16 项测试保存在隔离基线中；旧接口说明以下仅供对照，不适用于新版启动。
+
+---
+
 # Agent Security Real API Lab v2
 
 这一版把上一版 Mock LLM 替换成了**真实 Qwen / DeepSeek API**，并使用模型原生 Function / Tool Calling。
@@ -187,30 +197,3 @@ messages.append({
 
 这就是标准的 Tool Calling 循环。
 
-## 9. 面试时最值得讲的一点
-
-> 我没有把 LLM 当成可信权限中心。即使 Prompt Injection 让模型产生了高权限 Tool Call，最终授权仍由后端做确定性判断；同时我把 RAG、Memory、Tool Result 都视为不同信任边界，并在输出侧加了基础 DLP。
-
-这句话比“我会 Prompt Injection”更能体现 Agent Security 思维。
-
-## 10. 下一版可扩展
-
-如果想往小鹏 / 阿里 Agent Security 靠：
-
-- FastAPI + JWT + RBAC
-- SQLite 多租户数据
-- MCP Tool Server
-- Tool allowlist / risk score
-- human-in-the-loop
-- audit log
-- prompt injection test set
-
-如果想往无人机安全靠：
-
-- `get_vehicle_state()`
-- `set_mission()`
-- `arm_vehicle()`
-- PX4 SITL
-- MAVLink
-- 高风险 Tool 二次确认
-- 指控链路权限与审计

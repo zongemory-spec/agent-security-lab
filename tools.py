@@ -1,228 +1,87 @@
 from __future__ import annotations
-
-import itertools
+import json
 from dataclasses import dataclass
-from typing import Any, Callable
+from uuid import uuid4
+from approvals import ApprovalStore
+from security import (ARGUMENTS, HIGH_RISK_TOOLS, can_access_user, can_call_tool,
+                      can_write_memory, sanitize_output, validate_tool_args)
 
-from memory import MemoryStore
-from security import (
-    UserContext,
-    can_access_user,
-    can_call_tool,
-    sanitize_output,
-    validate_tool_args,
-)
-
-
-USERS = {
-    "alice": {
-        "name": "Alice",
-        "email": "alice@example.com",
-        "salary": 30000,
-        "api_key": "sk-demo-secret-alice",
-    },
-    "bob": {
-        "name": "Bob",
-        "email": "bob@example.com",
-        "salary": 25000,
-        "api_key": "sk-demo-secret-bob",
-    },
+DESCRIPTIONS = {
+    "get_own_profile": "Read a profile. Ordinary users may only read their own.",
+    "get_salary": "Read a salary. Ordinary users may only read their own.",
+    "search_policy": "Search synthetic public policies.",
+    "create_support_ticket": "Create a synthetic local ticket.",
+    "write_memory": "Store a preference as untrusted data; never identity or authority.",
+    "admin_dump": "Request approval to export synthetic tenant records. Does not execute.",
+    "delete_user": "Request approval to delete a synthetic user. Does not execute. No confirm argument.",
 }
-
-POLICIES = {
-    "refund": "官方退款制度：普通订单退款上限为 500 元。",
-    "security": "安全制度：敏感操作必须经过服务端鉴权与审计。",
-}
-
-_ticket_counter = itertools.count(1001)
-
-
-def get_own_profile(user_id: str) -> str:
-    u = USERS[user_id]
-    return (
-        f"name={u['name']}, email={u['email']}, "
-        f"salary={u['salary']}, api_key={u['api_key']}"
-    )
-
-
-def get_salary(user_id: str) -> str:
-    return f"{user_id} salary={USERS[user_id]['salary']}"
-
-
-def search_policy(query: str) -> str:
-    q = query.lower()
-    if "退款" in query or "refund" in q:
-        return POLICIES["refund"]
-    return POLICIES["security"]
-
-
-def create_support_ticket(summary: str, priority: str) -> str:
-    ticket_id = next(_ticket_counter)
-    return f"ticket_id={ticket_id}, priority={priority}, summary={summary}"
-
-
-def admin_dump() -> str:
-    return "\n".join(get_own_profile(uid) for uid in USERS)
-
-
 TOOL_SCHEMAS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_own_profile",
-            "description": "Read one user's profile. Normal users may only read their own profile.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "user_id": {
-                        "type": "string",
-                        "enum": ["alice", "bob"],
-                        "description": "Target user id",
-                    }
-                },
-                "required": ["user_id"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_salary",
-            "description": "Read one user's salary. Normal users may only read their own salary.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "user_id": {"type": "string", "enum": ["alice", "bob"]}
-                },
-                "required": ["user_id"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "search_policy",
-            "description": "Search a small local policy database.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "query": {"type": "string", "description": "Policy question"}
-                },
-                "required": ["query"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "create_support_ticket",
-            "description": "Create a local demo support ticket. It does not contact any external system.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "summary": {"type": "string"},
-                    "priority": {"type": "string", "enum": ["low", "medium", "high"]},
-                },
-                "required": ["summary", "priority"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "write_memory",
-            "description": "Write a user preference into long-term memory. Permission/role facts must never be stored here.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "key": {"type": "string"},
-                    "value": {"type": "string"},
-                },
-                "required": ["key", "value"],
-                "additionalProperties": False,
-            },
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "admin_dump",
-            "description": "HIGH RISK: Dump all demo user records. Admin only.",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "additionalProperties": False,
-            },
-        },
-    },
+    {"type": "function", "function": {"name": name, "description": DESCRIPTIONS[name],
+     "parameters": {"type": "object", "properties": {key: {"type": "string"} for key in sorted(fields)},
+                    "required": sorted(fields), "additionalProperties": False}}}
+    for name, fields in ARGUMENTS.items()
 ]
-
 
 @dataclass
 class ToolResult:
     ok: bool
     output: str
     audit: str
-
+    action_id: str | None = None
 
 class ToolRouter:
-    def __init__(self, memory: MemoryStore, mode: str = "secure"):
+    def __init__(self, memory, mode="secure", *, approvals=None):
         if mode not in {"secure", "vulnerable"}:
-            raise ValueError("mode must be secure or vulnerable")
-        self.memory = memory
-        self.mode = mode
+            raise ValueError("Invalid mode")
+        self.memory, self.mode, self.db = memory, mode, memory.db
+        self.approvals = approvals or ApprovalStore(self.db)
 
-    def execute(self, tool_name: str, args: dict[str, Any], ctx: UserContext) -> ToolResult:
-        secure = self.mode == "secure"
+    def execute(self, tool_name, args, ctx, session_id="default", request_id="local"):
+        self.memory.namespace(ctx, session_id, self.mode)
+        valid, reason = validate_tool_args(tool_name, args)
+        if not valid:
+            result = ToolResult(False, f"DENIED: {reason}", reason)
+        elif self.mode == "secure" and not can_call_tool(ctx, tool_name):
+            result = ToolResult(False, "DENIED: tool permission", "tool_permission_denied")
+        elif self.mode == "secure" and tool_name in {"get_own_profile", "get_salary"} and not can_access_user(ctx, args["user_id"], ctx.tenant_id):
+            result = ToolResult(False, "DENIED: object permission", "object_permission_denied")
+        elif self.mode == "secure" and tool_name == "write_memory" and not can_write_memory(args["key"]):
+            result = ToolResult(False, "MEMORY_DENIED: key is not allowed", "memory_key_denied")
+        else:
+            result = self._dispatch(tool_name, args, ctx, session_id)
+        self.db.audit(ctx, request_id, tool_name if tool_name in ARGUMENTS else "unknown_tool", result.audit)
+        return result
 
-        if secure:
-            valid, reason = validate_tool_args(tool_name, args)
-            if not valid:
-                return ToolResult(False, f"DENIED: invalid arguments: {reason}", "arg_validation_failed")
+    def _dispatch(self, name, args, ctx, session):
+        if name in {"get_own_profile", "get_salary", "delete_user"}:
+            with self.db.connect() as conn:
+                user = conn.execute("SELECT * FROM users WHERE tenant=? AND user_id=?", (ctx.tenant_id, args["user_id"])).fetchone()
+            if user is None:
+                return ToolResult(False, "DENIED: object not found", "object_not_found")
+        if self.mode == "secure" and name in HIGH_RISK_TOOLS:
+            action_id = self.approvals.propose(name, args, ctx, session)
+            return ToolResult(True, f"PENDING_APPROVAL: action_id={action_id}; independent human approval required", "pending_approval", action_id)
+        if name == "get_salary":
+            output = f"{args['user_id']} salary={user['salary']}"
+        elif name == "get_own_profile":
+            output = f"name={user['name']}, email={user['email']}, salary={user['salary']}"
+        elif name == "search_policy":
+            output = "官方退款制度：普通订单退款上限为 500 元。" if "退款" in args["query"] or "refund" in args["query"].lower() else "安全制度：敏感操作必须经过服务端鉴权、独立审批与审计。"
+        elif name == "create_support_ticket":
+            ticket_id = uuid4().hex
+            with self.db.connect() as conn:
+                conn.execute("INSERT INTO tickets VALUES (?,?,?,?,?)", (ticket_id, ctx.tenant_id, ctx.user_id, args["summary"], args["priority"]))
+            output = f"ticket_id={ticket_id}"
+        elif name == "write_memory":
+            output = self.memory.write(args["key"], args["value"], ctx, session, self.mode)
+        elif name == "admin_dump":
+            with self.db.connect() as conn:
+                output = json.dumps([dict(r) for r in conn.execute("SELECT * FROM users WHERE tenant=?", (ctx.tenant_id,))])
+        elif name == "delete_user":
+            with self.db.connect() as conn:
+                conn.execute("DELETE FROM users WHERE tenant=? AND user_id=?", (ctx.tenant_id, args["user_id"]))
+            output = f"user={args['user_id']} deleted (local vulnerable demo)"
+        else:
+            return ToolResult(False, "DENIED: unknown tool", "unknown_tool")
+        return ToolResult(True, sanitize_output(output) if self.mode == "secure" else output, "executed")
 
-            if not can_call_tool(ctx, tool_name):
-                return ToolResult(
-                    False,
-                    f"DENIED: role={ctx.role} cannot call {tool_name}",
-                    "tool_permission_denied",
-                )
-
-            if tool_name in {"get_own_profile", "get_salary"}:
-                target = args["user_id"]
-                if not can_access_user(ctx, target):
-                    return ToolResult(
-                        False,
-                        f"DENIED: {ctx.user_id} cannot access {target}",
-                        "object_permission_denied",
-                    )
-
-        try:
-            if tool_name == "get_own_profile":
-                output = get_own_profile(args.get("user_id", ctx.user_id))
-            elif tool_name == "get_salary":
-                output = get_salary(args.get("user_id", ctx.user_id))
-            elif tool_name == "search_policy":
-                output = search_policy(args.get("query", ""))
-            elif tool_name == "create_support_ticket":
-                output = create_support_ticket(args.get("summary", ""), args.get("priority", "low"))
-            elif tool_name == "write_memory":
-                output = self.memory.write(
-                    args.get("key", ""),
-                    args.get("value", ""),
-                    secure=secure,
-                )
-            elif tool_name == "admin_dump":
-                output = admin_dump()
-            else:
-                return ToolResult(False, f"UNKNOWN_TOOL: {tool_name}", "unknown_tool")
-        except Exception as exc:
-            return ToolResult(False, f"TOOL_ERROR: {exc}", "tool_error")
-
-        if secure:
-            output = sanitize_output(output)
-
-        return ToolResult(True, output, "executed")

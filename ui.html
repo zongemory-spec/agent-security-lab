@@ -1,0 +1,23 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent 安全实验室</title><style>body{font:16px system-ui;max-width:900px;margin:40px auto;padding:0 20px;background:#f5f7fa;color:#182b40}section{background:white;padding:24px;border-radius:14px;margin:18px 0}input,textarea{box-sizing:border-box;width:100%;padding:10px;margin:8px 0}button{padding:10px 18px;margin:5px;border:0;border-radius:6px;background:#185ab4;color:white}pre{white-space:pre-wrap;overflow-wrap:anywhere}small{color:#53657a}</style>
+<h1>Agent 安全实验室</h1><p>仅使用本地合成账号。离线模式不会访问真实模型。</p>
+<section><h2>请求</h2><label>操作者凭证<input id="actor" type="password" autocomplete="off"></label>
+<label>会话<input id="session" value="demo"></label><label>请求<textarea id="message">/salary alice</textarea></label>
+<small>离线指令：/salary alice · /salary bob · /delete bob · /dump · /remember language zh-CN</small><br>
+<button id="send">发送请求</button><pre id="result"></pre></section>
+<section><h2>独立人工审批</h2><p>审批人请独立核对操作对象与后果。批准不会立即执行；模拟删除仅在操作者执行后生效。</p>
+<label>操作编号<input id="action"></label><label>审批人凭证<input id="reviewer" type="password" autocomplete="off"></label>
+<button id="inspect">查看待审批详情</button><pre id="details"></pre>
+<button id="approve" disabled>确认批准</button><button id="reject" disabled>拒绝</button><button id="execute" disabled>由操作者执行一次</button><pre id="decision"></pre></section>
+<script>
+let reviewed=null;
+const el=id=>document.getElementById(id);
+async function api(path,token,body){const r=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await r.json();if(!r.ok)throw Error(data.detail||r.status);return data;}
+async function show(id,fn){try{el(id).textContent=JSON.stringify(await fn(),null,2);}catch(e){el(id).textContent=e.message;}}
+el('send').onclick=()=>show('result',async()=>{const r=await api('/chat',el('actor').value,{session_id:el('session').value,message:el('message').value});const a=r.trace.find(x=>x.action_id);if(a)el('action').value=a.action_id;return r;});
+function reset(){reviewed=null;for(const id of ['approve','reject','execute'])el(id).disabled=true;}
+el('action').oninput=reset;el('reviewer').oninput=reset;
+el('inspect').onclick=()=>show('details',async()=>{reset();reviewed=await api('/actions/'+encodeURIComponent(el('action').value),el('reviewer').value);for(const id of ['approve','reject'])el(id).disabled=reviewed.status!=='pending';el('execute').disabled=reviewed.status!=='approved';return reviewed;});
+for(const op of ['approve','reject','execute'])el(op).onclick=()=>show('decision',async()=>{if(!reviewed)throw Error('请先查看详情');const r=await api('/actions/'+encodeURIComponent(reviewed.id)+'/'+op,el(op==='execute'?'actor':'reviewer').value,{digest:reviewed.digest});el('execute').disabled=r.status!=='approved';el('approve').disabled=true;el('reject').disabled=true;return r;});
+</script></html>
+
