@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-30T17:40:03.542405+00:00",
+  "scope": "Offline synthetic application-policy scenarios; no real model or production security claim.",
+  "passed": true,
+  "scenario_count": 14,
+  "cases": [
+    {
+      "scenario": "own_record",
+      "expected": true,
+      "actual": true,
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_own_profile_and_salary"
+    },
+    {
+      "scenario": "horizontal_access",
+      "expected": "object_permission_denied",
+      "actual": "object_permission_denied",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_horizontal_and_vertical_permissions"
+    },
+    {
+      "scenario": "vertical_access",
+      "expected": "tool_permission_denied",
+      "actual": "tool_permission_denied",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_horizontal_and_vertical_permissions"
+    },
+    {
+      "scenario": "forged_role_argument",
+      "expected": "missing_or_extra_fields",
+      "actual": "missing_or_extra_fields",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_invalid_arguments_matrix"
+    },
+    {
+      "scenario": "model_confirm_argument",
+      "expected": "missing_or_extra_fields",
+      "actual": "missing_or_extra_fields",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_invalid_arguments_matrix"
+    },
+    {
+      "scenario": "self_approval",
+      "expected": "independent_approver_required",
+      "actual": "independent_approver_required",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_self_approval_and_wrong_reviewer_denied"
+    },
+    {
+      "scenario": "tampered_digest",
+      "expected": "action_digest_mismatch",
+      "actual": "action_digest_mismatch",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_digest_changes_rejected"
+    },
+    {
+      "scenario": "expired_approval",
+      "expected": "action_expired",
+      "actual": "action_expired",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_expired_pending_and_approved"
+    },
+    {
+      "scenario": "reviewer_revoked",
+      "expected": "approval_authority_revoked",
+      "actual": "approval_authority_revoked",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_revoked_reviewer"
+    },
+    {
+      "scenario": "memory_isolation",
+      "expected": {},
+      "actual": {},
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_memory_namespace_and_restart"
+    },
+    {
+      "scenario": "memory_authority_key",
+      "expected": "memory_key_denied",
+      "actual": "memory_key_denied",
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_memory_poison_isolation_and_whitelist"
+    },
+    {
+      "scenario": "concurrent_replay",
+      "expected": {
+        "consumed": 1,
+        "denied": 7,
+        "reasons": {
+          "action_not_approved": 7
+        },
+        "final_status": "consumed",
+        "target_exists": false
+      },
+      "actual": {
+        "consumed": 1,
+        "denied": 7,
+        "reasons": {
+          "action_not_approved": 7
+        },
+        "final_status": "consumed",
+        "target_exists": false
+      },
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_consumed_once_even_concurrent"
+    },
+    {
+      "scenario": "approval_does_not_execute",
+      "expected": [
+        "pending",
+        "approved",
+        "consumed"
+      ],
+      "actual": [
+        "pending",
+        "approved",
+        "consumed"
+      ],
+      "passed": true,
+      "regression_test": "test_api.APITests.test_approval_http_flow"
+    },
+    {
+      "scenario": "target_preserved_until_execution",
+      "expected": [
+        true,
+        true,
+        false
+      ],
+      "actual": [
+        true,
+        true,
+        false
+      ],
+      "passed": true,
+      "regression_test": "test_security.SecurityTests.test_model_cannot_execute_high_risk"
+    }
+  ],
+  "approval_flow": [
+    {
+      "stage": "proposal",
+      "status": "pending",
+      "target_exists": true
+    },
+    {
+      "stage": "approval",
+      "status": "approved",
+      "target_exists": true
+    },
+    {
+      "stage": "execution",
+      "status": "consumed",
+      "target_exists": false
+    }
+  ],
+  "concurrency": {
+    "workers": 8,
+    "consumed": 1,
+    "denied": 7,
+    "reasons": {
+      "action_not_approved": 7
+    },
+    "final_status": "consumed",
+    "target_exists": false,
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": "denied",
+        "reason": "action_not_approved"
+      },
+      {
+        "attempt": 2,
+        "status": "denied",
+        "reason": "action_not_approved"
+      },
+      {
+        "attempt": 3,
+        "status": "denied",
+        "reason": "action_not_approved"
+      },
+      {
+        "attempt": 4,
+        "status": "denied",
+        "reason": "action_not_approved"
+      },
+      {
+        "attempt": 5,
+        "status": "denied",
+        "reason": "action_not_approved"
+      },
+      {
+        "attempt": 6,
+        "status": "denied",
+        "reason": "action_not_approved"
+      },
+      {
+        "attempt": 7,
+        "status": "denied",
+        "reason": "action_not_approved"
+      },
+      {
+        "attempt": 8,
+        "status": "consumed",
+        "reason": null
+      }
+    ]
+  }
+}
