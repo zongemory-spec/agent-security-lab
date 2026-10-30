@@ -1,0 +1,87 @@
+C:\Users\Administrator\Documents\Codex\2026-10-30\https-github-com-zongemory-spec-couple\work\security-local\agent_security_real_api_lab_v3_1\.venv-engineering\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+  from starlette.testclient import TestClient as TestClient  # noqa
+test_approval_http_flow (test_api.APITests.test_approval_http_flow) ... {"request_id": "e4758c9e100e4c4592d433cfee0b77aa", "status": 200, "reason": "request_completed"}
+{"request_id": "78aff9068db547bfa020c2f16f65bfce", "status": 200, "reason": "request_completed"}
+{"request_id": "7a29ccee5efe4543ae856ca1b41f0a2a", "status": 403, "reason": "action_access_denied"}
+{"request_id": "5d328c8a75d54a6888ece6eb5f34cdcf", "status": 409, "reason": "action_not_approved"}
+{"request_id": "b27f0f11d9a74c97b9c0fbceb4a6bbd4", "status": 403, "reason": "independent_approver_required"}
+{"request_id": "02f94ea7b0a245d8aa7b27d837dd3ae3", "status": 200, "reason": "request_completed"}
+{"request_id": "1b14e364a269458d859ce26a5f319991", "status": 422, "reason": "invalid_request"}
+{"request_id": "82627b5dd0a04c0091d24d9824051f34", "status": 200, "reason": "request_completed"}
+{"request_id": "18501f96de604045996a9152032763cd", "status": 409, "reason": "action_not_approved"}
+ok
+test_bad_input_no_echo (test_api.APITests.test_bad_input_no_echo) ... {"request_id": "582aa2d8dc864444b549a47fe092c7fe", "status": 422, "reason": "invalid_request"}
+ok
+test_call_limit (test_api.APITests.test_call_limit) ... {"request_id": "08fe08d0f0e846b88251ec326e3bf1d2", "status": 200, "reason": "request_completed"}
+ok
+test_cancellable_timeout (test_api.APITests.test_cancellable_timeout) ... {"request_id": "177ee7687dee4e76b3cacbffee885926", "status": 504, "reason": "run_timeout"}
+ok
+test_forged_role_tenant_mode_rejected (test_api.APITests.test_forged_role_tenant_mode_rejected) ... {"request_id": "22d2be64956d4d45b04860b7eae1d5d6", "status": 422, "reason": "invalid_request"}
+{"request_id": "36477bcdcc7f48fd897fb282dcb83ba4", "status": 422, "reason": "invalid_request"}
+{"request_id": "9a18cc77ef354c6f8853db4593fe52a0", "status": 422, "reason": "invalid_request"}
+{"request_id": "32c13803f69c4cc2b13249be11f33aa4", "status": 422, "reason": "invalid_request"}
+ok
+test_health_and_auth (test_api.APITests.test_health_and_auth) ... {"request_id": "b0d41d03c1794a3f844588372fc34ccd", "status": 200, "reason": "request_completed"}
+{"request_id": "68f5dbb7fb1844749d42c143ba93b555", "status": 401, "reason": "authentication_required"}
+{"request_id": "e5dc3dd5230d4438a7ef46f6929a0fa3", "status": 401, "reason": "invalid_credentials"}
+ok
+test_invalid_json_and_unknown_tool (test_api.APITests.test_invalid_json_and_unknown_tool) ... {"request_id": "a2789dc85cad4aa68b4d66a79918ce1d", "status": 200, "reason": "request_completed"}
+ok
+test_known_secret_redacted_from_response_and_saved_run (test_api.APITests.test_known_secret_redacted_from_response_and_saved_run) ... {"request_id": "d7a3a7a946bd4553af24f15e9c6681d5", "status": 200, "reason": "request_completed"}
+ok
+test_own_and_denied_model_tools (test_api.APITests.test_own_and_denied_model_tools) ... {"request_id": "ffe32a287b9d4e3f874939d50c29c3ac", "status": 200, "reason": "request_completed"}
+{"request_id": "322ef89fa85e4d43a69e7c436d0bac72", "status": 200, "reason": "request_completed"}
+ok
+test_repeat_calls_do_not_repeat_side_effects (test_api.APITests.test_repeat_calls_do_not_repeat_side_effects) ... {"request_id": "4f55fdd1c10145dd9916795016e9ff71", "status": 200, "reason": "request_completed"}
+ok
+test_round_limit (test_api.APITests.test_round_limit) ... {"request_id": "11b21e1ad4de427f9c102cd3f0dbf20b", "status": 200, "reason": "request_completed"}
+ok
+test_runs_authorization_and_ids (test_api.APITests.test_runs_authorization_and_ids) ... {"request_id": "44dc43b6a4a94b05ba043847145e8510", "status": 200, "reason": "request_completed"}
+{"request_id": "decc1c5f235c4b65abcae637260f736f", "status": 200, "reason": "request_completed"}
+{"request_id": "848c9a60eb2f4bfd8738209185e503d9", "status": 403, "reason": "run_access_denied"}
+ok
+test_upstream_429_and_error_without_secrets (test_api.APITests.test_upstream_429_and_error_without_secrets) ... {"request_id": "39e5b842dac44e1c99714d3d21790ffb", "status": 503, "reason": "model_rate_limited"}
+ok
+test_original_16_unchanged (test_legacy_baseline.LegacyBaseline.test_original_16_unchanged) ... ok
+test_http_429_is_not_success (test_llm_client.AdapterTests.test_http_429_is_not_success) ... ok
+test_malformed_response (test_llm_client.AdapterTests.test_malformed_response) ... ok
+test_transport_timeout (test_llm_client.AdapterTests.test_transport_timeout) ... ok
+test_valid_wire_response (test_llm_client.AdapterTests.test_valid_wire_response) ... ok
+test_audit_has_id_and_no_user_text (test_security.SecurityTests.test_audit_has_id_and_no_user_text) ... ok
+test_consumed_once_even_concurrent (test_security.SecurityTests.test_consumed_once_even_concurrent) ... ok
+test_digest_changes_rejected (test_security.SecurityTests.test_digest_changes_rejected) ... ok
+test_expired_pending_and_approved (test_security.SecurityTests.test_expired_pending_and_approved) ... ok
+test_horizontal_and_vertical_permissions (test_security.SecurityTests.test_horizontal_and_vertical_permissions) ... ok
+test_invalid_arguments_matrix (test_security.SecurityTests.test_invalid_arguments_matrix) ... ok
+test_legacy_json_not_imported (test_security.SecurityTests.test_legacy_json_not_imported) ... ok
+test_memory_data_not_authority_even_safe_key (test_security.SecurityTests.test_memory_data_not_authority_even_safe_key) ... ok
+test_memory_namespace_and_restart (test_security.SecurityTests.test_memory_namespace_and_restart) ... ok
+test_memory_poison_isolation_and_whitelist (test_security.SecurityTests.test_memory_poison_isolation_and_whitelist) ... ok
+test_missing_object_predictable (test_security.SecurityTests.test_missing_object_predictable) ... ok
+test_model_cannot_execute_high_risk (test_security.SecurityTests.test_model_cannot_execute_high_risk) ... ok
+test_own_profile_and_salary (test_security.SecurityTests.test_own_profile_and_salary) ... ok
+test_redaction_nested (test_security.SecurityTests.test_redaction_nested) ... ok
+test_rejected_not_executable (test_security.SecurityTests.test_rejected_not_executable) ... ok
+test_restart_keeps_approval_and_deletion (test_security.SecurityTests.test_restart_keeps_approval_and_deletion) ... ok
+test_revoked_reviewer (test_security.SecurityTests.test_revoked_reviewer) ... ok
+test_same_proposal_reused (test_security.SecurityTests.test_same_proposal_reused) ... ok
+test_schema_no_approval_or_identity_fields (test_security.SecurityTests.test_schema_no_approval_or_identity_fields) ... ok
+test_self_approval_and_wrong_reviewer_denied (test_security.SecurityTests.test_self_approval_and_wrong_reviewer_denied) ... ok
+test_tenant_bound_mutation (test_security.SecurityTests.test_tenant_bound_mutation) ... ok
+test_transaction_rolls_back_failure (test_security.SecurityTests.test_transaction_rolls_back_failure) ... ok
+test_unknown_role_denied (test_security.SecurityTests.test_unknown_role_denied) ... ok
+test_unknown_tool_denied (test_security.SecurityTests.test_unknown_tool_denied) ... ok
+test_wrong_execution_identity_and_role (test_security.SecurityTests.test_wrong_execution_identity_and_role) ... ok
+test_cli_failure_exits_nonzero_and_keeps_report (test_showcase.ShowcaseTests.test_cli_failure_exits_nonzero_and_keeps_report) ... ok
+test_eight_concurrent_attempts_and_preserved_preexecution_target (test_showcase.ShowcaseTests.test_eight_concurrent_attempts_and_preserved_preexecution_target) ... ok
+test_existing_report_is_not_overwritten (test_showcase.ShowcaseTests.test_existing_report_is_not_overwritten) ... usage: python.exe -m unittest [-h] [--workers WORKERS] --out OUT
+python.exe -m unittest: error: [Errno 17] File exists: 'C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\tmph0h_12xq\\existing.json'
+ok
+test_unexpected_allowed_access_marks_evidence_failed (test_showcase.ShowcaseTests.test_unexpected_allowed_access_marks_evidence_failed) ... ok
+test_worker_limits (test_showcase.ShowcaseTests.test_worker_limits) ... ok
+
+----------------------------------------------------------------------
+Ran 48 tests in 9.219s
+
+OK
+{"passed": false, "scenario_count": 1, "workers": 2, "consumed": 0, "denied": 2}
